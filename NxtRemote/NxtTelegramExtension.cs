@@ -16,6 +16,15 @@ public static class NxtTelegramExtension
         return Unsafe.As<byte, TEnum>(ref value);
     }
 
+    public static NxtTelegram WriteInt16(this NxtTelegram telegram, short value) => telegram
+        .WriteByte((byte)value)
+        .WriteByte((byte)(value >> 8));
+
+    public static short ReadInt16(this NxtTelegram telegram) => (short)(telegram.ReadByte() | (telegram.ReadByte() << 8));
+    
+    public static NxtTelegram WriteUInt16(this NxtTelegram telegram, ushort value) => telegram.WriteInt16((short)value);
+    public static ushort ReadUInt16(this NxtTelegram telegram) => (ushort)telegram.ReadInt16();
+
     public static NxtTelegram WriteInt32(this NxtTelegram telegram, int value) => telegram
         .WriteByte((byte)value)
         .WriteByte((byte)(value >> 8))
