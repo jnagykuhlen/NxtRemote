@@ -41,15 +41,12 @@ public class NxtBluetoothCommunication : INxtCommunication
         if (!IsEstablished)
             throw new NxtCommunicationException("Cannot send telegram because the connection is not established.");
 
-        serialPort.Write(buffer, 0, buffer.Length);
+        Write(buffer);
     }
 
     private NxtTelegram ReceiveReply(NxtCommand expectedCommand)
     {
-        var length = serialPort.ReadByte() | serialPort.ReadByte() << 8;
-        var buffer = new byte[length];
-
-        serialPort.Read(buffer, 0, length);
+        var buffer = Read();
 
         var reply = new NxtTelegram(buffer);
 
@@ -69,9 +66,38 @@ public class NxtBluetoothCommunication : INxtCommunication
 
     public void Dispose()
     {
-        serialPort.Close();
-        serialPort.Dispose();
+        lock (serialPort)
+        {
+            serialPort.Close();
+            serialPort.Dispose();
+        }
     }
 
-    public bool IsEstablished => serialPort is { IsOpen: true, CtsHolding: true };
+    public bool IsEstablished
+    {
+        get
+        {
+            lock (serialPort)
+            {
+                return serialPort is { IsOpen: true, CtsHolding: true };
+            }
+        }
+    }
+
+    private void Write(byte[] buffer)
+    {
+        lock (serialPort)
+            serialPort.Write(buffer, 0, buffer.Length);
+    }
+
+    private byte[] Read()
+    {
+        lock (serialPort)
+        {
+            var length = serialPort.ReadByte() | serialPort.ReadByte() << 8;
+            var buffer = new byte[length];
+            serialPort.Read(buffer, 0, length);
+            return buffer;
+        }
+    }
 }

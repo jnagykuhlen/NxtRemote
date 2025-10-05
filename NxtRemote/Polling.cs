@@ -35,19 +35,26 @@ public class Polling<T>(Func<T> pollingFunction, TimeSpan pollingInterval) : IDi
             }
         }
     }
-    
+
     private void OnTimerCallback(object? state)
     {
-        try
+        if (lockObject.TryEnter())
         {
-            InternalOnDataReceived?.Invoke(this, new PollingEventArgs<T>(pollingFunction()));
-        }
-        catch (Exception exception)
-        {
-            Console.WriteLine($"Exception while polling data: {exception}");
+            try
+            {
+                InternalOnDataReceived?.Invoke(this, new PollingEventArgs<T>(pollingFunction()));
+            }
+            catch (Exception exception)
+            {
+                Console.WriteLine($"Exception while polling data: {exception}");
+            }
+            finally
+            {
+                lockObject.Exit();
+            }
         }
     }
-    
+
     public Task WaitForConditionAsync(Func<T, bool> condition)
     {
         TaskCompletionSource taskCompletionSource = new();
