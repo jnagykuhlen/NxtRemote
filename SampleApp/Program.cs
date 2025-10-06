@@ -11,8 +11,17 @@ var controller = new NxtController(communication);
 
 controller.PlayTone(450, 500);
 
-var motor = controller.GetMotor(NxtMotorPort.B);
+var motors = controller.GetSynchronizedMotors(NxtMotorPort.B, NxtMotorPort.C);
 
-await Task.WhenAny(motor.RunAsync(0.5f, 1200), Task.Delay(5000));
+await new AsyncStateMachine<State>()
+    .WithStateTransition(State.Forward, () => motors.RunAsync(0.5f, 0.0f, 3600), State.Turning)
+    .WithStateTransition(State.Turning, () => motors.RunAsync(0.5f, 1.0f, 3600), State.Forward)
+    .RunAsync(State.Forward, TimeSpan.FromSeconds(10));
 
-motor.Coast();
+motors.Coast();
+
+enum State
+{
+    Forward,
+    Turning
+}
