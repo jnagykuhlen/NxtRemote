@@ -1,10 +1,9 @@
 ﻿namespace NxtRemote.Motors;
 
-public class NxtMotor(NxtMotorCommunication communication)
+public class NxtMotor(NxtMotorCommunication communication, TimeSpan pollingInterval)
 {
-    private static readonly TimeSpan PollingInterval = TimeSpan.FromMilliseconds(50);
-
-    private readonly Polling<NxtMotorOutputState> polling = new(communication.GetOutputState, PollingInterval);
+    public IPollable<NxtMotorOutputState> Pollable { get; } =
+        new Polling<NxtMotorOutputState>(communication.GetOutputState, pollingInterval);
 
     public void Run(float power, int tachoLimit = 0)
     {
@@ -103,8 +102,7 @@ public class NxtMotor(NxtMotorCommunication communication)
         );
     }
 
-    private Task WaitForIdleAsync() =>
-        polling.WaitForConditionAsync(outputState => outputState.RunState == NxtMotorRunState.Idle);
+    private Task WaitForIdleAsync() => Pollable.WhenAsync(outputState => outputState.RunState == NxtMotorRunState.Idle);
 
     private void SetOutputState(
         float power,
