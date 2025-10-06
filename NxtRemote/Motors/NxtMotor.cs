@@ -5,12 +5,14 @@ public class NxtMotor(NxtMotorCommunication communication, TimeSpan pollingInter
     public IPollable<NxtMotorOutputState> Pollable { get; } =
         new Polling<NxtMotorOutputState>(communication.GetOutputState, pollingInterval);
 
+    protected NxtMotorCommunication Communication { get; } = communication;
+
     public void Run(float power, int tachoLimit = 0)
     {
         if (tachoLimit < 0)
             throw new ArgumentOutOfRangeException(nameof(tachoLimit));
 
-        SetOutputState(
+        Communication.SetOutputState(
             power,
             NxtMotorMode.On | NxtMotorMode.Regulated,
             NxtMotorRegulationMode.Speed,
@@ -41,7 +43,7 @@ public class NxtMotor(NxtMotorCommunication communication, TimeSpan pollingInter
         if (tachoLimit < 0)
             throw new ArgumentOutOfRangeException(nameof(tachoLimit));
 
-        firstMotor.SetOutputState(
+        firstMotor.Communication.SetOutputState(
             power,
             NxtMotorMode.On | NxtMotorMode.Regulated | NxtMotorMode.Brake,
             NxtMotorRegulationMode.Synchronization,
@@ -50,7 +52,7 @@ public class NxtMotor(NxtMotorCommunication communication, TimeSpan pollingInter
             tachoLimit
         );
 
-        secondMotor.SetOutputState(
+        secondMotor.Communication.SetOutputState(
             power,
             NxtMotorMode.On | NxtMotorMode.Regulated | NxtMotorMode.Brake,
             NxtMotorRegulationMode.Synchronization,
@@ -80,7 +82,7 @@ public class NxtMotor(NxtMotorCommunication communication, TimeSpan pollingInter
 
     public void Coast()
     {
-        communication.SetOutputState(
+        Communication.SetOutputState(
             0,
             NxtMotorMode.On | NxtMotorMode.Regulated,
             NxtMotorRegulationMode.None,
@@ -92,7 +94,7 @@ public class NxtMotor(NxtMotorCommunication communication, TimeSpan pollingInter
 
     public void Break()
     {
-        communication.SetOutputState(
+        Communication.SetOutputState(
             0,
             NxtMotorMode.On | NxtMotorMode.Regulated | NxtMotorMode.Brake,
             NxtMotorRegulationMode.None,
@@ -103,23 +105,4 @@ public class NxtMotor(NxtMotorCommunication communication, TimeSpan pollingInter
     }
 
     private Task WaitForIdleAsync() => Pollable.WhenAsync(outputState => outputState.RunState == NxtMotorRunState.Idle);
-
-    private void SetOutputState(
-        float power,
-        NxtMotorMode mode,
-        NxtMotorRegulationMode regulationMode,
-        float turnRatio,
-        NxtMotorRunState runState,
-        int tachoLimit
-    )
-    {
-        communication.SetOutputState(
-            (sbyte)(int)(100 * float.Clamp(power, -1.0f, 1.0f)),
-            mode,
-            regulationMode,
-            (sbyte)(int)(100 * float.Clamp(turnRatio, -1.0f, 1.0f)),
-            runState,
-            (uint)tachoLimit
-        );
-    }
 }

@@ -2,16 +2,16 @@
 
 public class NxtMotorCommunication(INxtCommunication communication, NxtMotorPort port)
 {
-    public void SetOutputState(sbyte power, NxtMotorMode mode, NxtMotorRegulationMode regulationMode, sbyte turnRatio, NxtMotorRunState runState, uint tachoLimit)
+    public void SetOutputState(float power, NxtMotorMode mode, NxtMotorRegulationMode regulationMode, float turnRatio, NxtMotorRunState runState, int tachoLimit)
     {
         var telegram = new NxtTelegram(12, NxtTelegramType.DirectCommand, NxtCommand.SetOutputState)
             .WriteByte((byte)port)
-            .WriteByte((byte)sbyte.Clamp(power, -100, 100))
+            .WriteByte((byte)Denormalize(power))
             .WriteByte((byte)mode)
             .WriteByte((byte)regulationMode)
-            .WriteByte((byte)sbyte.Clamp(turnRatio, -100, 100))
+            .WriteByte((byte)Denormalize(turnRatio))
             .WriteByte((byte)runState)
-            .WriteUInt32(tachoLimit);
+            .WriteUInt32((uint)tachoLimit);
 
         communication.SendWithoutReply(telegram);
     }
@@ -27,12 +27,12 @@ public class NxtMotorCommunication(INxtCommunication communication, NxtMotorPort
             throw new NxtCommunicationException("Reply motor port does not match requested motor port.");
 
         return new NxtMotorOutputState(
-            (sbyte)reply.ReadByte(),
+            Normalize((sbyte)reply.ReadByte()),
             (NxtMotorMode)reply.ReadByte(),
             (NxtMotorRegulationMode)reply.ReadByte(),
-            (sbyte)reply.ReadByte(),
+            Normalize((sbyte)reply.ReadByte()),
             (NxtMotorRunState)reply.ReadByte(),
-            reply.ReadUInt32(),
+            (int)reply.ReadUInt32(),
             reply.ReadInt32(),
             reply.ReadInt32(),
             reply.ReadInt32()
@@ -47,15 +47,18 @@ public class NxtMotorCommunication(INxtCommunication communication, NxtMotorPort
         
         communication.SendWithoutReply(telegram);
     }
+    
+    private static sbyte Denormalize(float value) => (sbyte)(int)(100 * float.Clamp(value, -1.0f, 1.0f));
+    private static float Normalize(sbyte value) => value / 100.0f;
 }
 
 public record struct NxtMotorOutputState(
-    sbyte Power,
+    float Power,
     NxtMotorMode Mode,
     NxtMotorRegulationMode RegulationMode,
-    sbyte TurnRatio,
+    float TurnRatio,
     NxtMotorRunState RunState,
-    uint TachoLimit,
+    int TachoLimit,
     int TachoCount,
     int BlockTachoCount,
     int RotationCount
