@@ -2,13 +2,11 @@
 
 public class NxtSynchronizedMotors(NxtMotor firstMotor, NxtMotor secondMotor)
 {
-    public void Run(float power, float turnRatio, int tachoLimit = 0)
-    {
-        if (tachoLimit < 0)
-            throw new ArgumentOutOfRangeException(nameof(tachoLimit));
-
+    public void Run(float power, float turnRatio, int tachoLimit = 0) =>
         NxtMotor.RunSynchronized(firstMotor, secondMotor, power, turnRatio, tachoLimit);
-    }
+
+    public Task RunAsync(float power, float turnRatio, int tachoLimit) =>
+        NxtMotor.RunSynchronizedAsync(firstMotor, secondMotor, power, turnRatio, tachoLimit);
 
     public void Break()
     {
