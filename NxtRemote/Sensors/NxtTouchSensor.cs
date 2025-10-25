@@ -1,17 +1,21 @@
 ﻿namespace NxtRemote.Sensors;
 
-public class NxtTouchSensor(NxtSensorCommunication communication, TimeSpan pollingInterval)
+public class NxtTouchSensor
 {
-    protected IPollable<NxtSensorInputValues> Pollable { get; } =
-        new Polling<NxtSensorInputValues>(communication.GetInputValues, pollingInterval);
-    
-    public TouchState GetState() => GetTouchState(communication.GetInputValues());
-    
-    public Task WaitForStateAsync(TouchState state) =>
-        Pollable.WhenAsync(inputValues => GetTouchState(inputValues) == state);
-    
-    private static TouchState GetTouchState(NxtSensorInputValues inputValues) =>
-        inputValues.ScaledValue > 0 ? TouchState.Pressed : TouchState.Unpressed;
+    public IPollable<TouchState> Pollable { get; }
+
+    public NxtTouchSensor(NxtSensorCommunication communication, TimeSpan pollingInterval)
+    {
+        communication.SetInputMode(NxtSensorType.Switch, NxtSensorMode.Boolean);
+        
+        Pollable = new Polling<TouchState>(
+            () => communication.GetInputValues().ScaledValue > 0 ? TouchState.Pressed : TouchState.Unpressed,
+            pollingInterval
+        );
+    }
+
+    public TouchState GetState() => Pollable.PollOnce();
+    public Task WaitForStateAsync(TouchState desiredState) => Pollable.WhenAsync(state => state == desiredState);
 }
 
 public enum TouchState

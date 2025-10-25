@@ -7,6 +7,8 @@ public class Polling<T>(Func<T> pollingFunction, TimeSpan pollingInterval) : IDi
     private Timer? timer;
     private readonly Lock lockObject = new();
 
+    public T PollOnce() => pollingFunction();
+
     public event EventHandler<PollingEventArgs<T>> OnDataReceived
     {
         add
@@ -42,7 +44,7 @@ public class Polling<T>(Func<T> pollingFunction, TimeSpan pollingInterval) : IDi
         {
             try
             {
-                InternalOnDataReceived?.Invoke(this, new PollingEventArgs<T>(pollingFunction()));
+                InternalOnDataReceived?.Invoke(this, new PollingEventArgs<T>(PollOnce()));
             }
             catch (Exception exception)
             {

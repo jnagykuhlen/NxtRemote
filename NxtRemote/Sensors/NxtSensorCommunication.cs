@@ -12,10 +12,8 @@ public class NxtSensorCommunication(INxtCommunication communication, NxtSensorPo
         if ((NxtSensorPort)reply.ReadByte() != port)
             throw new NxtCommunicationException("Reply sensor port does not match requested sensor port.");
 
-        if (reply.ReadByte() > 0)
-            throw new NxtCommunicationException("Reply sensor input is invalid.");
-
         return new NxtSensorInputValues(
+            reply.ReadByte() > 0,
             reply.ReadByte() > 0,
             (NxtSensorType)reply.ReadByte(),
             (NxtSensorMode)reply.ReadByte(),
@@ -24,5 +22,15 @@ public class NxtSensorCommunication(INxtCommunication communication, NxtSensorPo
             reply.ReadUInt16(),
             reply.ReadUInt16()
         );
+    }
+    
+    public void SetInputMode(NxtSensorType sensorType, NxtSensorMode sensorMode)
+    {
+        var telegram = new NxtTelegram(5, NxtTelegramType.DirectCommand, NxtCommand.SetInputMode)
+            .WriteByte((byte)port)
+            .WriteByte((byte)sensorType)
+            .WriteByte((byte)sensorMode);
+        
+        communication.SendWithoutReply(telegram);
     }
 }

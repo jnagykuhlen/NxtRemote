@@ -2,8 +2,9 @@
 
 public interface IPollable<T>
 {
+    T PollOnce();
     event EventHandler<PollingEventArgs<T>> OnDataReceived;
-    
+
     public Task WhenAsync(Func<T, bool> predicate)
     {
         TaskCompletionSource taskCompletionSource = new();
