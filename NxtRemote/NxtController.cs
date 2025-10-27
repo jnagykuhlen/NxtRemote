@@ -31,6 +31,9 @@ public class NxtController(INxtCommunication communication, TimeSpan defaultPoll
     public NxtTouchSensor GetTouchSensor(NxtSensorPort port, TimeSpan? pollingInterval = null) =>
         new(new NxtSensorCommunication(communication, port), pollingInterval ?? defaultPollingInterval);
 
-    public NxtLightSensor GetLightSensor(NxtSensorPort port, bool lightActive, TimeSpan? pollingInterval = null) =>
+    public NxtLightSensor GetLightSensor(NxtSensorPort port, bool lightActive = false, TimeSpan? pollingInterval = null) =>
         new(new NxtSensorCommunication(communication, port), pollingInterval ?? defaultPollingInterval, lightActive);
+
+    public NxtSoundSensor GetSoundSensor(NxtSensorPort port, bool weighted = false, TimeSpan? pollingInterval = null) =>
+        new(new NxtSensorCommunication(communication, port), pollingInterval ?? defaultPollingInterval, weighted);
 }

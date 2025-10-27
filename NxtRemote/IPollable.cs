@@ -2,12 +2,11 @@
 
 public interface IPollable<T>
 {
-    T PollOnce();
     event EventHandler<PollingEventArgs<T>> OnDataReceived;
 
-    public Task WhenAsync(Func<T, bool> predicate)
+    public Task<T> WhenAsync(Func<T, bool> predicate)
     {
-        TaskCompletionSource taskCompletionSource = new();
+        TaskCompletionSource<T> taskCompletionSource = new();
         OnDataReceived += DataReceived;
         return taskCompletionSource.Task;
 
@@ -16,10 +15,18 @@ public interface IPollable<T>
             if (predicate(eventArgs.Data))
             {
                 OnDataReceived -= DataReceived;
-                taskCompletionSource.TrySetResult();
+                taskCompletionSource.TrySetResult(eventArgs.Data);
             }
         }
     }
+    
+    public Task<TSelected> WhenAsync<TSelected>(Func<T, TSelected> selector, Func<TSelected, bool> predicate) =>
+        WhenAsync(data => predicate(selector(data))).ContinueWith(task => selector(task.Result));
+    
+    public Task<T> NextAsync() => WhenAsync(_ => true);
+    
+    public Task<TSelected> NextAsync<TSelected>(Func<T, TSelected> selector) =>
+        NextAsync().ContinueWith(task => selector(task.Result));
 }
 
 public class PollingEventArgs<T>(T data) : EventArgs
