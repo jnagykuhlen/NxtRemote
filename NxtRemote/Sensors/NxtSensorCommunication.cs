@@ -8,9 +8,10 @@ public class NxtSensorCommunication(INxtCommunication communication, NxtSensorPo
             .WriteByte((byte)port);
 
         var reply = communication.SendWithReply(telegram);
-
-        if ((NxtSensorPort)reply.ReadByte() != port)
-            throw new NxtCommunicationException("Reply sensor port does not match requested sensor port.");
+        
+        var replyPort = (NxtSensorPort)reply.ReadByte();
+        if (replyPort != port)
+            throw new NxtCommunicationException($"Reply sensor port \"{replyPort}\" does not match requested sensor port \"{port}\".");
 
         return new NxtSensorInputValues(
             reply.ReadByte() > 0,
