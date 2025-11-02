@@ -7,21 +7,21 @@ public class NxtSensorCommunication(INxtCommunication communication, NxtSensorPo
         var telegram = new NxtTelegram(3, NxtTelegramType.DirectCommand, NxtCommand.GetInputValues)
             .WriteByte((byte)port);
 
-        var reply = communication.SendWithReply(telegram);
+        var replyTelegram = communication.SendWithReply(telegram).Success();
         
-        var replyPort = (NxtSensorPort)reply.ReadByte();
+        var replyPort = (NxtSensorPort)replyTelegram.ReadByte();
         if (replyPort != port)
             throw new NxtCommunicationException($"Reply sensor port \"{replyPort}\" does not match requested sensor port \"{port}\".");
 
         return new NxtSensorInputValues(
-            reply.ReadByte() > 0,
-            reply.ReadByte() > 0,
-            (NxtSensorType)reply.ReadByte(),
-            (NxtSensorMode)reply.ReadByte(),
-            reply.ReadUInt16(),
-            reply.ReadUInt16(),
-            reply.ReadUInt16(),
-            reply.ReadUInt16()
+            replyTelegram.ReadByte() > 0,
+            replyTelegram.ReadByte() > 0,
+            (NxtSensorType)replyTelegram.ReadByte(),
+            (NxtSensorMode)replyTelegram.ReadByte(),
+            replyTelegram.ReadUInt16(),
+            replyTelegram.ReadUInt16(),
+            replyTelegram.ReadUInt16(),
+            replyTelegram.ReadUInt16()
         );
     }
     

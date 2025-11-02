@@ -21,21 +21,21 @@ public class NxtMotorCommunication(INxtCommunication communication, NxtMotorPort
         var telegram = new NxtTelegram(3, NxtTelegramType.DirectCommand, NxtCommand.GetOutputState)
             .WriteByte((byte)port);
 
-        var reply = communication.SendWithReply(telegram);
+        var replyTelegram = communication.SendWithReply(telegram).Success();
 
-        if ((NxtMotorPort)reply.ReadByte() != port)
+        if ((NxtMotorPort)replyTelegram.ReadByte() != port)
             throw new NxtCommunicationException("Reply motor port does not match requested motor port.");
 
         return new NxtMotorOutputState(
-            Normalize((sbyte)reply.ReadByte()),
-            (NxtMotorMode)reply.ReadByte(),
-            (NxtMotorRegulationMode)reply.ReadByte(),
-            Normalize((sbyte)reply.ReadByte()),
-            (NxtMotorRunState)reply.ReadByte(),
-            (int)reply.ReadUInt32(),
-            reply.ReadInt32(),
-            reply.ReadInt32(),
-            reply.ReadInt32()
+            Normalize((sbyte)replyTelegram.ReadByte()),
+            (NxtMotorMode)replyTelegram.ReadByte(),
+            (NxtMotorRegulationMode)replyTelegram.ReadByte(),
+            Normalize((sbyte)replyTelegram.ReadByte()),
+            (NxtMotorRunState)replyTelegram.ReadByte(),
+            (int)replyTelegram.ReadUInt32(),
+            replyTelegram.ReadInt32(),
+            replyTelegram.ReadInt32(),
+            replyTelegram.ReadInt32()
         );
     }
 

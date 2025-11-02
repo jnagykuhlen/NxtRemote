@@ -22,7 +22,7 @@ public class NxtBluetoothCommunication : INxtCommunication
         Send(telegram, false);
     }
 
-    public NxtTelegram SendWithReply(NxtTelegram telegram)
+    public NxtReply SendWithReply(NxtTelegram telegram)
     {
         Send(telegram, true);
         return ReceiveReply(telegram.Command);
@@ -44,7 +44,7 @@ public class NxtBluetoothCommunication : INxtCommunication
         Write(buffer);
     }
 
-    private NxtTelegram ReceiveReply(NxtCommand expectedCommand)
+    private NxtReply ReceiveReply(NxtCommand expectedCommand)
     {
         var buffer = Read();
 
@@ -56,12 +56,7 @@ public class NxtBluetoothCommunication : INxtCommunication
         if (reply.Command != expectedCommand)
             throw new NxtCommunicationException($"Reply command does not match sent telegram: {reply.Command}");
 
-        var commandStatus = (NxtCommandStatus)reply.ReadByte();
-
-        if (commandStatus != NxtCommandStatus.Success)
-            throw new NxtCommunicationException($"Command failed with status: {commandStatus}");
-
-        return reply;
+        return new NxtReply(reply);
     }
 
     public void Dispose()
