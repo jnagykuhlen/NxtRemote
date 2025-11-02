@@ -36,4 +36,7 @@ public class NxtController(INxtCommunication communication, TimeSpan defaultPoll
 
     public NxtSoundSensor GetSoundSensor(NxtSensorPort port, bool weighted = false, TimeSpan? pollingInterval = null) =>
         new(new NxtSensorCommunication(communication, port), pollingInterval ?? defaultPollingInterval, weighted);
+
+    public NxtUltrasonicSensor GetUltrasonicSensor(NxtSensorPort port, TimeSpan? pollingInterval = null) =>
+        new(new NxtSensorCommunication(communication, port), pollingInterval ?? defaultPollingInterval);
 }

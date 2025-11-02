@@ -1,4 +1,6 @@
-﻿namespace NxtRemote;
+﻿using System.Text;
+
+namespace NxtRemote;
 
 public class NxtTelegram
 {
@@ -41,6 +43,9 @@ public class NxtTelegram
 
         return buffer[readPosition++];
     }
+
+    public string ReadString(byte maxLength) =>
+        Encoding.ASCII.GetString(buffer, readPosition, maxLength).TrimEnd('\0');
 
     public void CopyTo(byte[] destination, int startIndex, bool requestReply)
     {
