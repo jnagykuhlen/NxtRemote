@@ -6,8 +6,8 @@ public class NxtTouchSensor
 
     public NxtTouchSensor(NxtSensorCommunication communication, TimeSpan pollingInterval)
     {
-        communication.SetInputMode(NxtSensorType.Switch, NxtSensorMode.Boolean);
-        Pollable = new Polling<NxtSensorInputValues>(communication.GetInputValues, pollingInterval);
+        communication.SetInputModeAsync(NxtSensorType.Switch, NxtSensorMode.Boolean);
+        Pollable = new Polling<NxtSensorInputValues>(communication.GetInputValuesAsync, pollingInterval);
     }
 
     public Task<TouchState> GetTouchStateAsync() => Pollable.NextAsync(GetTouchState);

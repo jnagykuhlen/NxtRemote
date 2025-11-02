@@ -3,7 +3,7 @@
 public class NxtMotor(NxtMotorCommunication communication, TimeSpan pollingInterval)
 {
     public IPollable<NxtMotorOutputState> Pollable { get; } =
-        new Polling<NxtMotorOutputState>(communication.GetOutputState, pollingInterval);
+        new Polling<NxtMotorOutputState>(communication.GetOutputStateAsync, pollingInterval);
 
     protected NxtMotorCommunication Communication { get; } = communication;
 
@@ -12,7 +12,7 @@ public class NxtMotor(NxtMotorCommunication communication, TimeSpan pollingInter
         if (tachoLimit < 0)
             throw new ArgumentOutOfRangeException(nameof(tachoLimit));
 
-        Communication.SetOutputState(
+        Communication.SetOutputStateAsync(
             power,
             NxtMotorMode.On | NxtMotorMode.Regulated,
             NxtMotorRegulationMode.Speed,
@@ -43,7 +43,7 @@ public class NxtMotor(NxtMotorCommunication communication, TimeSpan pollingInter
         if (tachoLimit < 0)
             throw new ArgumentOutOfRangeException(nameof(tachoLimit));
 
-        firstMotor.Communication.SetOutputState(
+        firstMotor.Communication.SetOutputStateAsync(
             power,
             NxtMotorMode.On | NxtMotorMode.Regulated | NxtMotorMode.Brake,
             NxtMotorRegulationMode.Synchronization,
@@ -52,7 +52,7 @@ public class NxtMotor(NxtMotorCommunication communication, TimeSpan pollingInter
             tachoLimit
         );
 
-        secondMotor.Communication.SetOutputState(
+        secondMotor.Communication.SetOutputStateAsync(
             power,
             NxtMotorMode.On | NxtMotorMode.Regulated | NxtMotorMode.Brake,
             NxtMotorRegulationMode.Synchronization,
@@ -82,7 +82,7 @@ public class NxtMotor(NxtMotorCommunication communication, TimeSpan pollingInter
 
     public void Coast()
     {
-        Communication.SetOutputState(
+        Communication.SetOutputStateAsync(
             0,
             NxtMotorMode.On | NxtMotorMode.Regulated,
             NxtMotorRegulationMode.None,
@@ -94,7 +94,7 @@ public class NxtMotor(NxtMotorCommunication communication, TimeSpan pollingInter
 
     public void Break()
     {
-        Communication.SetOutputState(
+        Communication.SetOutputStateAsync(
             0,
             NxtMotorMode.On | NxtMotorMode.Regulated | NxtMotorMode.Brake,
             NxtMotorRegulationMode.None,
@@ -104,7 +104,7 @@ public class NxtMotor(NxtMotorCommunication communication, TimeSpan pollingInter
         );
     }
 
-    public void ResetPosition(NxtResetMotorMode mode) => Communication.ResetMotorPosition(mode);
+    public void ResetPosition(NxtResetMotorMode mode) => Communication.ResetMotorPositionAsync(mode);
 
     private Task WaitForIdleAsync() => Pollable.WhenAsync(outputState => outputState.RunState == NxtMotorRunState.Idle);
 }

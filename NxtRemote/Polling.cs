@@ -1,10 +1,10 @@
 ﻿namespace NxtRemote;
 
-public class Polling<T>(Func<T> pollingFunction, TimeSpan pollingInterval) : IDisposable, IPollable<T>
+public class Polling<T>(Func<Task<T>> pollAsync, TimeSpan pollingInterval) : IDisposable, IPollable<T>
 {
     private event EventHandler<PollingEventArgs<T>>? InternalOnDataReceived;
 
-    private Timer? timer;
+    private Task? pollingTask;
     private readonly Lock lockObject = new();
 
     public event EventHandler<PollingEventArgs<T>> OnDataReceived
@@ -14,12 +14,7 @@ public class Polling<T>(Func<T> pollingFunction, TimeSpan pollingInterval) : IDi
             lock (lockObject)
             {
                 InternalOnDataReceived += value;
-                timer ??= new Timer(
-                    OnTimerCallback,
-                    null,
-                    TimeSpan.Zero,
-                    pollingInterval
-                );
+                pollingTask ??= CreatePollingTask();
             }
         }
         remove
@@ -28,30 +23,25 @@ public class Polling<T>(Func<T> pollingFunction, TimeSpan pollingInterval) : IDi
             {
                 InternalOnDataReceived -= value;
                 if (InternalOnDataReceived == null)
-                {
-                    timer?.Dispose();
-                    timer = null;
-                }
+                    pollingTask = null;
             }
         }
     }
 
-    private void OnTimerCallback(object? state)
+    private async Task CreatePollingTask()
     {
-        if (lockObject.TryEnter())
+        while (InternalOnDataReceived != null)
         {
             try
             {
-                InternalOnDataReceived?.Invoke(this, new PollingEventArgs<T>(pollingFunction()));
+                InternalOnDataReceived?.Invoke(this, new PollingEventArgs<T>(await pollAsync()));
             }
             catch (Exception exception)
             {
                 Console.WriteLine($"Exception while polling data: {exception}");
             }
-            finally
-            {
-                lockObject.Exit();
-            }
+            
+            await Task.Delay(pollingInterval);
         }
     }
 
@@ -60,8 +50,7 @@ public class Polling<T>(Func<T> pollingFunction, TimeSpan pollingInterval) : IDi
         lock (lockObject)
         {
             InternalOnDataReceived = null;
-            timer?.Dispose();
-            timer = null;
+            pollingTask = null;
         }
     }
 }

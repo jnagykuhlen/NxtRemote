@@ -2,8 +2,8 @@
 
 public interface INxtCommunication : IDisposable
 {
-    void SendWithoutReply(NxtTelegram telegram);
-    NxtReply SendWithReply(NxtTelegram telegram);
+    Task SendWithoutReplyAsync(NxtTelegram telegram);
+    Task<NxtReply> SendWithReplyAsync(NxtTelegram telegram);
 }
 
 public class NxtCommunicationException(string message) : Exception(message);

@@ -4,8 +4,8 @@ public class NxtSoundSensor {
     public IPollable<NxtSensorInputValues> Pollable { get; }
 
     public NxtSoundSensor(NxtSensorCommunication communication, TimeSpan pollingInterval, bool humanWeighted) {
-        communication.SetInputMode(humanWeighted ? NxtSensorType.SoundDba : NxtSensorType.SoundDb, NxtSensorMode.PercentageFullScale);
-        Pollable = new Polling<NxtSensorInputValues>(communication.GetInputValues, pollingInterval);
+        communication.SetInputModeAsync(humanWeighted ? NxtSensorType.SoundDba : NxtSensorType.SoundDb, NxtSensorMode.PercentageFullScale);
+        Pollable = new Polling<NxtSensorInputValues>(communication.GetInputValuesAsync, pollingInterval);
     }
 
     public Task<float> GetSoundLevelAsync() => Pollable.NextAsync(GetSoundLevel);

@@ -19,7 +19,7 @@ public class NxtController(INxtCommunication communication, TimeSpan defaultPoll
             .WriteUInt16((ushort)frequency)
             .WriteUInt16((ushort)durationMilliseconds);
 
-        communication.SendWithoutReply(telegram);
+        communication.SendWithoutReplyAsync(telegram);
     }
 
     public NxtMotor GetMotor(NxtMotorPort port, TimeSpan? pollingInterval = null) =>

@@ -2,7 +2,7 @@
 
 public class NxtMotorCommunication(INxtCommunication communication, NxtMotorPort port)
 {
-    public void SetOutputState(float power, NxtMotorMode mode, NxtMotorRegulationMode regulationMode, float turnRatio, NxtMotorRunState runState, int tachoLimit)
+    public Task SetOutputStateAsync(float power, NxtMotorMode mode, NxtMotorRegulationMode regulationMode, float turnRatio, NxtMotorRunState runState, int tachoLimit)
     {
         var telegram = new NxtTelegram(12, NxtTelegramType.DirectCommand, NxtCommand.SetOutputState)
             .WriteByte((byte)port)
@@ -13,15 +13,16 @@ public class NxtMotorCommunication(INxtCommunication communication, NxtMotorPort
             .WriteByte((byte)runState)
             .WriteUInt32((uint)tachoLimit);
 
-        communication.SendWithoutReply(telegram);
+        return communication.SendWithoutReplyAsync(telegram);
     }
 
-    public NxtMotorOutputState GetOutputState()
+    public async Task<NxtMotorOutputState> GetOutputStateAsync()
     {
         var telegram = new NxtTelegram(3, NxtTelegramType.DirectCommand, NxtCommand.GetOutputState)
             .WriteByte((byte)port);
 
-        var replyTelegram = communication.SendWithReply(telegram).Success();
+        var reply = await communication.SendWithReplyAsync(telegram);
+        var replyTelegram = reply.Success();
 
         if ((NxtMotorPort)replyTelegram.ReadByte() != port)
             throw new NxtCommunicationException("Reply motor port does not match requested motor port.");
@@ -39,13 +40,13 @@ public class NxtMotorCommunication(INxtCommunication communication, NxtMotorPort
         );
     }
 
-    public void ResetMotorPosition(NxtResetMotorMode mode)
+    public Task ResetMotorPositionAsync(NxtResetMotorMode mode)
     {
         var telegram = new NxtTelegram(4, NxtTelegramType.DirectCommand, NxtCommand.ResetMotorPosition)
             .WriteByte((byte)port)
             .WriteByte((byte)mode);
         
-        communication.SendWithoutReply(telegram);
+        return communication.SendWithoutReplyAsync(telegram);
     }
     
     private static sbyte Denormalize(float value) => (sbyte)(int)(100 * float.Clamp(value, -1.0f, 1.0f));

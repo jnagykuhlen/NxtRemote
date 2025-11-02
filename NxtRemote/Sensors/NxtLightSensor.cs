@@ -6,8 +6,8 @@ public class NxtLightSensor
 
     public NxtLightSensor(NxtSensorCommunication communication, TimeSpan pollingInterval, bool lightActive)
     {
-        communication.SetInputMode(lightActive ? NxtSensorType.LightActive : NxtSensorType.LightInactive, NxtSensorMode.PercentageFullScale);
-        Pollable = new Polling<NxtSensorInputValues>(communication.GetInputValues, pollingInterval);
+        communication.SetInputModeAsync(lightActive ? NxtSensorType.LightActive : NxtSensorType.LightInactive, NxtSensorMode.PercentageFullScale);
+        Pollable = new Polling<NxtSensorInputValues>(communication.GetInputValuesAsync, pollingInterval);
     }
 
     public Task<float> GetLightIntensityAsync() => Pollable.NextAsync(GetLightIntensity);

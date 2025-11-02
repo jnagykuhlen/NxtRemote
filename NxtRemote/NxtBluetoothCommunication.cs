@@ -1,4 +1,5 @@
-﻿using System.IO.Ports;
+﻿using System.Diagnostics;
+using System.IO.Ports;
 
 namespace NxtRemote;
 
@@ -17,15 +18,16 @@ public class NxtBluetoothCommunication : INxtCommunication
         serialPort.Open();
     }
 
-    public void SendWithoutReply(NxtTelegram telegram)
+    public Task SendWithoutReplyAsync(NxtTelegram telegram)
     {
         Send(telegram, false);
+        return Task.CompletedTask;
     }
 
-    public NxtReply SendWithReply(NxtTelegram telegram)
+    public Task<NxtReply> SendWithReplyAsync(NxtTelegram telegram)
     {
         Send(telegram, true);
-        return ReceiveReply(telegram.Command);
+        return Task.FromResult(ReceiveReply(telegram.Command));
     }
 
     private void Send(NxtTelegram telegram, bool requestReply)

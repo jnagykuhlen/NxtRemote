@@ -2,12 +2,13 @@
 
 public class NxtSensorCommunication(INxtCommunication communication, NxtSensorPort port)
 {
-    public NxtSensorInputValues GetInputValues()
+    public async Task<NxtSensorInputValues> GetInputValuesAsync()
     {
         var telegram = new NxtTelegram(3, NxtTelegramType.DirectCommand, NxtCommand.GetInputValues)
             .WriteByte((byte)port);
 
-        var replyTelegram = communication.SendWithReply(telegram).Success();
+        var reply = await communication.SendWithReplyAsync(telegram);
+        var replyTelegram = reply.Success();
 
         var replyPort = (NxtSensorPort)replyTelegram.ReadByte();
         if (replyPort != port)
@@ -25,39 +26,40 @@ public class NxtSensorCommunication(INxtCommunication communication, NxtSensorPo
         );
     }
 
-    public void SetInputMode(NxtSensorType sensorType, NxtSensorMode sensorMode)
+    public Task SetInputModeAsync(NxtSensorType sensorType, NxtSensorMode sensorMode)
     {
         var telegram = new NxtTelegram(5, NxtTelegramType.DirectCommand, NxtCommand.SetInputMode)
             .WriteByte((byte)port)
             .WriteByte((byte)sensorType)
             .WriteByte((byte)sensorMode);
 
-        communication.SendWithoutReply(telegram);
+        return communication.SendWithoutReplyAsync(telegram);
     }
 
-    public byte DigitalReadByte(byte address) => DigitalRead(address, 1).ReadByte();
-    public string DigitalReadString(byte address, byte maxLength) =>
-        DigitalRead(address, maxLength).ReadString(maxLength);
+    public async Task<byte> DigitalReadByteAsync(byte address) => (await DigitalReadAsync(address, 1)).ReadByte();
+    public async Task<string> DigitalReadStringAsync(byte address, byte maxLength) =>
+        (await DigitalReadAsync(address, maxLength)).ReadString(maxLength);
 
-    private NxtTelegram DigitalRead(byte address, byte expectedResponseLength)
+    private async Task<NxtTelegram> DigitalReadAsync(byte address, byte expectedResponseLength)
     {
-        LowSpeedWrite(address, expectedResponseLength);
+        await LowSpeedWriteAsync(address, expectedResponseLength);
 
         byte bytesReady;
         do
         {
-            bytesReady = LowSpeedGetStatus();
+            bytesReady = await LowSpeedGetStatusAsync();
         } while (bytesReady < expectedResponseLength);
 
-        return LowSpeedRead(expectedResponseLength);
+        return await LowSpeedReadAsync(expectedResponseLength);
     }
 
-    private NxtTelegram LowSpeedRead(byte expectedResponseLength)
+    private async Task<NxtTelegram> LowSpeedReadAsync(byte expectedResponseLength)
     {
         var telegram = new NxtTelegram(3, NxtTelegramType.DirectCommand, NxtCommand.LowSpeedRead)
             .WriteByte((byte)port);
 
-        var replyTelegram = communication.SendWithReply(telegram).Success();
+        var reply = await communication.SendWithReplyAsync(telegram);
+        var replyTelegram = reply.Success();
 
         var responseLength = replyTelegram.ReadByte();
         if (responseLength < expectedResponseLength)
@@ -66,7 +68,7 @@ public class NxtSensorCommunication(INxtCommunication communication, NxtSensorPo
         return replyTelegram;
     }
 
-    private void LowSpeedWrite(byte address, byte expectedResponseLength)
+    private Task LowSpeedWriteAsync(byte address, byte expectedResponseLength)
     {
         var telegram = new NxtTelegram(7, NxtTelegramType.DirectCommand, NxtCommand.LowSpeedWrite)
             .WriteByte((byte)port)
@@ -75,15 +77,15 @@ public class NxtSensorCommunication(INxtCommunication communication, NxtSensorPo
             .WriteByte(0x02)
             .WriteByte(address);
 
-        communication.SendWithoutReply(telegram);
+        return communication.SendWithoutReplyAsync(telegram);
     }
 
-    private byte LowSpeedGetStatus()
+    private async Task<byte> LowSpeedGetStatusAsync()
     {
         var telegram = new NxtTelegram(3, NxtTelegramType.DirectCommand, NxtCommand.LowSpeedGetStatus)
             .WriteByte((byte)port);
 
-        var reply = communication.SendWithReply(telegram);
+        var reply = await communication.SendWithReplyAsync(telegram);
         if (reply.Status == NxtCommandStatus.PendingCommunicationTransactionInProgress)
             return 0;
 
