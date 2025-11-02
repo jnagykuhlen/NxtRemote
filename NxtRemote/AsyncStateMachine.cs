@@ -30,6 +30,8 @@ public class AsyncStateMachine<TState> where TState : struct, Enum
         
         while (DateTime.Now < targetTime)
         {
+            Console.WriteLine($"Executing state: {currentState}");
+            
             if (!stateDescriptions.TryGetValue(currentState, out var stateDescription))
                 throw new InvalidOperationException($"State '{currentState}' is not defined.");
                 
