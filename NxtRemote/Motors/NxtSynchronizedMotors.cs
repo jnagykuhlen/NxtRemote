@@ -19,4 +19,10 @@ public class NxtSynchronizedMotors(NxtMotor firstMotor, NxtMotor secondMotor)
         firstMotor.Coast();
         secondMotor.Coast();
     }
+    
+    public void ResetPosition(NxtResetMotorMode mode)
+    {
+        firstMotor.ResetPosition(mode);
+        secondMotor.ResetPosition(mode);
+    }
 }

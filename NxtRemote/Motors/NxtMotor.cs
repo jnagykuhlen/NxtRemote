@@ -104,5 +104,7 @@ public class NxtMotor(NxtMotorCommunication communication, TimeSpan pollingInter
         );
     }
 
+    public void ResetPosition(NxtResetMotorMode mode) => Communication.ResetMotorPosition(mode);
+
     private Task WaitForIdleAsync() => Pollable.WhenAsync(outputState => outputState.RunState == NxtMotorRunState.Idle);
 }
