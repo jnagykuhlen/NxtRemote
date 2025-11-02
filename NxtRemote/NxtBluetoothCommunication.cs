@@ -1,11 +1,14 @@
-﻿using System.Diagnostics;
-using System.IO.Ports;
+﻿using System.IO.Ports;
 
 namespace NxtRemote;
 
 public class NxtBluetoothCommunication : INxtCommunication
 {
     private readonly SerialPort serialPort;
+    private readonly Lock writeLock = new();
+    private readonly Lock readLock = new();
+    private readonly Queue<PendingReply> pendingReplies = new();
+    private Task? readTask;
 
     public NxtBluetoothCommunication(string serialPortName, int timeout = 1000)
     {
@@ -16,21 +19,30 @@ public class NxtBluetoothCommunication : INxtCommunication
         };
 
         serialPort.Open();
+        
+        if (serialPort is not { IsOpen: true, CtsHolding: true })
+            throw new NxtCommunicationException("Failed to establish serial port.");
     }
 
     public Task SendWithoutReplyAsync(NxtTelegram telegram)
     {
-        Send(telegram, false);
+        WriteWithoutReply(CreateBuffer(telegram, false));
         return Task.CompletedTask;
     }
 
     public Task<NxtReply> SendWithReplyAsync(NxtTelegram telegram)
     {
-        Send(telegram, true);
-        return Task.FromResult(ReceiveReply(telegram.Command));
+        var taskCompletionSource = new TaskCompletionSource<NxtReply>();
+
+        WriteWithReply(
+            CreateBuffer(telegram, true),
+            new PendingReply(telegram.Command, taskCompletionSource)
+        );
+
+        return taskCompletionSource.Task;
     }
 
-    private void Send(NxtTelegram telegram, bool requestReply)
+    private static byte[] CreateBuffer(NxtTelegram telegram, bool requestReply)
     {
         if (telegram.Type is not (NxtTelegramType.DirectCommand or NxtTelegramType.SystemCommand))
             throw new ArgumentException("Invalid telegram type for sending.", nameof(telegram));
@@ -39,62 +51,84 @@ public class NxtBluetoothCommunication : INxtCommunication
         buffer[0] = (byte)(telegram.Length & 0xFF);
         buffer[1] = (byte)((telegram.Length & 0xFF00) >> 8);
         telegram.CopyTo(buffer, 2, requestReply);
-
-        if (!IsEstablished)
-            throw new NxtCommunicationException("Cannot send telegram because the connection is not established.");
-
-        Write(buffer);
-    }
-
-    private NxtReply ReceiveReply(NxtCommand expectedCommand)
-    {
-        var buffer = Read();
-
-        var reply = new NxtTelegram(buffer);
-
-        if (reply.Type is not NxtTelegramType.Reply)
-            throw new NxtCommunicationException($"Invalid telegram type received for reply: {reply.Type}");
-
-        if (reply.Command != expectedCommand)
-            throw new NxtCommunicationException($"Reply command does not match sent telegram: {reply.Command}");
-
-        return new NxtReply(reply);
+        return buffer;
     }
 
     public void Dispose()
     {
-        lock (serialPort)
-        {
-            serialPort.Close();
-            serialPort.Dispose();
-        }
+        serialPort.Close();
+        serialPort.Dispose();
     }
 
-    public bool IsEstablished
+    private void WriteWithoutReply(byte[] buffer)
     {
-        get
+        lock (writeLock)
+            serialPort.Write(buffer, 0, buffer.Length);
+    }
+
+    private void WriteWithReply(byte[] buffer, PendingReply pendingReply)
+    {
+        lock (writeLock)
         {
-            lock (serialPort)
+            serialPort.Write(buffer, 0, buffer.Length);
+            
+            lock (readLock)
             {
-                return serialPort is { IsOpen: true, CtsHolding: true };
+                pendingReplies.Enqueue(pendingReply);
+                readTask ??= Task.Factory.StartNew(ReadPendingReplies, TaskCreationOptions.LongRunning);
             }
         }
     }
 
-    private void Write(byte[] buffer)
+    private void ReadPendingReplies()
     {
-        lock (serialPort)
-            serialPort.Write(buffer, 0, buffer.Length);
+        while (GetNextPendingReply() is { } nextPendingReply)
+        {
+            try
+            {
+                var reply = ReadReply(nextPendingReply.ExpectedCommand);
+                nextPendingReply.CompletionSource.SetResult(reply);
+            }
+            catch (Exception exception)
+            {
+                nextPendingReply.CompletionSource.SetException(exception);
+            }
+        }
+
+        lock (readLock)
+            readTask = null;
+    }
+
+    private PendingReply? GetNextPendingReply()
+    {
+        lock (readLock)
+        {
+            Console.WriteLine($"Currently {pendingReplies.Count} pending replies.");
+            pendingReplies.TryDequeue(out var pendingReply);
+            return pendingReply;
+        }
+    }
+
+    private NxtReply ReadReply(NxtCommand expectedCommand)
+    {
+        var replyTelegram = new NxtTelegram(Read());
+
+        if (replyTelegram.Type is not NxtTelegramType.Reply)
+            throw new NxtCommunicationException($"Invalid telegram type received for reply: {replyTelegram.Type}");
+
+        if (replyTelegram.Command != expectedCommand)
+            throw new NxtCommunicationException($"Reply command does not match sent telegram: {replyTelegram.Command}");
+
+        return new NxtReply(replyTelegram);
     }
 
     private byte[] Read()
     {
-        lock (serialPort)
-        {
             var length = serialPort.ReadByte() | serialPort.ReadByte() << 8;
             var buffer = new byte[length];
             serialPort.Read(buffer, 0, length);
             return buffer;
-        }
     }
+
+    private record PendingReply(NxtCommand ExpectedCommand, TaskCompletionSource<NxtReply> CompletionSource);
 }
